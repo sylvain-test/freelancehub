@@ -1,0 +1,40 @@
+services:
+
+  user-service:
+    image: user-service:1.0
+    pull_policy: never
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - freelancehub-network
+
+  mission-service:
+    image: mission-service:1.0
+    pull_policy: never
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - user-service
+    networks:
+      - freelancehub-network
+
+  notification-service:
+    image: notification-service:1.0
+    pull_policy: never
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - user-service
+      - mission-service
+    networks:
+      - freelancehub-network
+
+networks:
+  freelancehub-network:
+    driver: bridge

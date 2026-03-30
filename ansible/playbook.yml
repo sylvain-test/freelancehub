@@ -1,0 +1,107 @@
+---
+- name: Déploiement FreelanceHub sur EC2
+  hosts: freelancehub
+  become: yes
+
+  vars:
+    app_dir: /home/ubuntu/freelancehub
+
+  tasks:
+    - name: Mise à jour des paquets Ubuntu
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Installation de Docker
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Démarrage et activation de Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Ajout ubuntu au groupe docker
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Création du dossier freelancehub
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Copie du docker-compose.yml
+      copy:
+        src: ../../docker-compose.yml
+        dest: "{{ app_dir }}/docker-compose.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Sauvegarde image user-service
+      shell: docker save user-service:1.0 -o /tmp/user-service.tar
+      delegate_to: localhost
+
+    - name: Sauvegarde image mission-service
+      shell: docker save mission-service:1.0 -o /tmp/mission-service.tar
+      delegate_to: localhost
+
+    - name: Sauvegarde image notification-service
+      shell: docker save notification-service:1.0 -o /tmp/notification-service.tar
+      delegate_to: localhost
+
+    - name: Transfert des images Docker vers EC2
+      copy:
+        src: "/tmp/{{ item }}"
+        dest: "/tmp/{{ item }}"
+        owner: ubuntu
+        group: ubuntu
+      loop:
+        - user-service.tar
+        - mission-service.tar
+        - notification-service.tar
+
+    - name: Chargement des images Docker sur EC2
+      shell: docker load -i /tmp/{{ item }}
+      loop:
+        - user-service.tar
+        - mission-service.tar
+        - notification-service.tar
+
+    - name: Lancement des services avec Docker Compose
+      shell: docker-compose up -d
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Vérification user-service
+      uri:
+        url: http://localhost:8081/actuator/health
+        status_code: 200
+      retries: 5
+      delay: 10
+      ignore_errors: yes
+
+    - name: Vérification mission-service
+      uri:
+        url: http://localhost:8082/actuator/health
+        status_code: 200
+      retries: 5
+      delay: 10
+      ignore_errors: yes
+
+    - name: Vérification notification-service
+      uri:
+        url: http://localhost:8083/actuator/health
+        status_code: 200
+      retries: 5
+      delay: 10
+      ignore_errors: yes

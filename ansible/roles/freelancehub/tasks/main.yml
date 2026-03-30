@@ -1,0 +1,64 @@
+---
+- name: Vérification que Docker est installé
+  command: docker --version
+  register: docker_version
+  changed_when: false
+
+- name: Affichage de la version Docker
+  debug:
+    msg: "Docker version installée : {{ docker_version.stdout }}"
+
+- name: Vérification que Docker Compose est installé
+  command: docker-compose --version
+  register: compose_version
+  changed_when: false
+
+- name: Affichage de la version Docker Compose
+  debug:
+    msg: "Docker Compose version : {{ compose_version.stdout }}"
+
+- name: Vérification que le dossier freelancehub existe
+  stat:
+    path: /home/ubuntu/freelancehub
+  register: app_dir
+
+- name: Affichage du statut du dossier
+  debug:
+    msg: "Dossier freelancehub existe : {{ app_dir.stat.exists }}"
+
+- name: Vérification que les conteneurs tournent
+  shell: docker ps --format '{%raw%}{{.Names}}{%endraw%}'
+  register: running_containers
+  changed_when: false
+
+- name: Affichage des conteneurs actifs
+  debug:
+    msg: "Conteneurs actifs : {{ running_containers.stdout_lines }}"
+
+- name: Vérification du health check user-service
+  uri:
+    url: http://localhost:8081/actuator/health
+    status_code: 200
+  register: user_health
+  ignore_errors: yes
+
+- name: Vérification du health check mission-service
+  uri:
+    url: http://localhost:8082/actuator/health
+    status_code: 200
+  register: mission_health
+  ignore_errors: yes
+
+- name: Vérification du health check notification-service
+  uri:
+    url: http://localhost:8083/actuator/health
+    status_code: 200
+  register: notification_health
+  ignore_errors: yes
+
+- name: Rapport final de santé des services
+  debug:
+    msg:
+      - "user-service        : {{ 'UP' if user_health.status == 200 else 'DOWN' }}"
+      - "mission-service     : {{ 'UP' if mission_health.status == 200 else 'DOWN' }}"
+      - "notification-service: {{ 'UP' if notification_health.status == 200 else 'DOWN' }}"

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.notificationService.name }}
+  labels:
+    app: {{ .Values.notificationService.name }}
+spec:
+  replicas: {{ .Values.notificationService.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.notificationService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.notificationService.name }}
+    spec:
+      containers:
+        - name: {{ .Values.notificationService.name }}
+          image: "{{ .Values.notificationService.image }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.notificationService.port }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "{{ .Values.global.springProfile }}"
+          resources:
+            requests:
+              memory: {{ .Values.notificationService.resources.requests.memory }}
+              cpu: {{ .Values.notificationService.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.notificationService.resources.limits.memory }}
+              cpu: {{ .Values.notificationService.resources.limits.cpu }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: {{ .Values.notificationService.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: {{ .Values.notificationService.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 5

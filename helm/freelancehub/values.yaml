@@ -1,0 +1,47 @@
+# Valeurs globales partagées par tous les services
+global:
+  imageTag: "1.0"
+  imagePullPolicy: Never
+  springProfile: docker
+
+# Configuration du user-service
+userService:
+  name: user-service
+  replicas: 2
+  image: user-service
+  port: 8081
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Configuration du mission-service
+missionService:
+  name: mission-service
+  replicas: 2
+  image: mission-service
+  port: 8082
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Configuration du notification-service
+notificationService:
+  name: notification-service
+  replicas: 2
+  image: notification-service
+  port: 8083
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"

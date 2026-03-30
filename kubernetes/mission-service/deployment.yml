@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mission-service
+  labels:
+    app: mission-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mission-service
+  template:
+    metadata:
+      labels:
+        app: mission-service
+    spec:
+      containers:
+        - name: mission-service
+          image: mission-service:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 5

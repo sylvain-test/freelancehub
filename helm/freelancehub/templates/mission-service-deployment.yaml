@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.missionService.name }}
+  labels:
+    app: {{ .Values.missionService.name }}
+spec:
+  replicas: {{ .Values.missionService.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.missionService.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.missionService.name }}
+    spec:
+      containers:
+        - name: {{ .Values.missionService.name }}
+          image: "{{ .Values.missionService.image }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.missionService.port }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "{{ .Values.global.springProfile }}"
+          resources:
+            requests:
+              memory: {{ .Values.missionService.resources.requests.memory }}
+              cpu: {{ .Values.missionService.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.missionService.resources.limits.memory }}
+              cpu: {{ .Values.missionService.resources.limits.cpu }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: {{ .Values.missionService.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: {{ .Values.missionService.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 5

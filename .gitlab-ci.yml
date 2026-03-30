@@ -1,0 +1,48 @@
+stages:
+  - build
+  - docker
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+build-services:
+  stage: build
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - cd user-service && mvn clean package -DskipTests && cd ..
+    - cd mission-service && mvn clean package -DskipTests && cd ..
+    - cd notification-service && mvn clean package -DskipTests && cd ..
+  artifacts:
+    paths:
+      - user-service/target/*.jar
+      - mission-service/target/*.jar
+      - notification-service/target/*.jar
+    expire_in: 1 hour
+  cache:
+    paths:
+      - .m2/repository
+
+build-docker:
+  stage: docker
+  image: docker:24
+  services:
+    - docker:24-dind
+  needs:
+    - build-services
+  script:
+    - docker build -t user-service:$CI_COMMIT_SHA ./user-service
+    - docker build -t mission-service:$CI_COMMIT_SHA ./mission-service
+    - docker build -t notification-service:$CI_COMMIT_SHA ./notification-service
+
+deploy:
+  stage: deploy
+  image: alpine/helm:3.14.0
+  needs:
+    - build-docker
+  only:
+    - main
+  script:
+    - helm upgrade --install freelancehub ./helm/freelancehub
+      --set global.imageTag=$CI_COMMIT_SHA
+      --wait

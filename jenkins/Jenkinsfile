@@ -1,0 +1,72 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_TAG = "${env.GIT_COMMIT}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            parallel {
+                stage('user-service') {
+                    steps {
+                        dir('user-service') {
+                            sh 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('mission-service') {
+                    steps {
+                        dir('mission-service') {
+                            sh 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+                stage('notification-service') {
+                    steps {
+                        dir('notification-service') {
+                            sh 'mvn clean package -DskipTests'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t user-service:${IMAGE_TAG} ./user-service'
+                sh 'docker build -t mission-service:${IMAGE_TAG} ./mission-service'
+                sh 'docker build -t notification-service:${IMAGE_TAG} ./notification-service'
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh """
+                    helm upgrade --install freelancehub ./helm/freelancehub \
+                        --set global.imageTag=${IMAGE_TAG} \
+                        --wait
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline FreelanceHub terminé avec succès !'
+        }
+        failure {
+            echo 'Pipeline FreelanceHub échoué !'
+        }
+    }
+}
